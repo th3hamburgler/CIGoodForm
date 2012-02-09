@@ -22,29 +22,65 @@ class Goodform {
 	private $form_validation;
 	private $parser;
 
-	private $template = 
-'<div class="control-group {state}">
-	{label}
-	<div class="controls">
-		{input}
-		{text}
-	</div>
-</div>';
-
-	private $help_template = '<span class="help-inline">{text}</span>';
+	private $template		= '{label}{input}{text}';
+	private $help_template	= '<span class="help-inline">{text}</span>';
 
    /**
 	* Object Constructor
 	*
 	* @access	private
+	* @param	array
 	* @return	void
 	*/
-	public function __construct()
+	public function __construct($config=array())
 	{
 		$this->load_config();
 		$this->load_helpers();
 		$this->load_libraries();
+		$this->initialize($config);
 	}	
+
+   /**
+	* Initialise instance config variables
+	*
+	* @access	public
+	* @param	void
+	* @return	void
+	*/
+	public function initialize($config=array())
+	{
+		$vars = array('template', 'help_template');
+		
+		foreach($vars as $var) {
+			if(element($var, $config)) {
+				$this->{$var} = element($config, $var);
+			}
+		}
+	}
+
+   /**
+	* initialises templates for horizontal form layouts
+	*
+	* @access	public
+	* @param	void
+	* @return	void
+	*/
+	public function horizontal_form()
+	{
+		$template = '<div class="control-group {state}">
+{label}
+<div class="controls">
+	{input}
+	{text}
+</div>
+</div>';
+		$config = array(
+			'template'		=> $template,
+			'help_template'	=> '<span class="help-inline">{text}</span>',
+		);
+		$this->initialize($config);
+		return $this;
+	}
 
    /**
 	* Builds the form and returns it as html
@@ -57,6 +93,102 @@ class Goodform {
 	{
 		return static::html_element('form', $this->generate_elements(), $attr);
 	}
+
+   /**
+	* Adds an input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @param	string		input type
+	* @return	object
+	*/
+	public function element($name, $value=null)
+	{
+		$attr=array();
+		if(!is_array($name)) {
+			$attr['name']	= $name;
+			$attr['value']	= $value;
+		} else {
+			$attr = $name;
+		}
+		$name = element('name', $attr);
+		if(!$name) {
+			log_message('error', 'GoodForm: name attribute missing, can not add field to form.');
+			return $this;
+		}
+		$raw_name	= $name;
+		$name		= $this->namespace.$name;
+		if(element($name, $this->fields)) {
+			log_message('error', 'GoodForm: a field "'.$raw_name.'" already exists in the form. Use a different field name or namespace.');
+			return $this;
+		}
+
+		// turn class string into array
+		//$attr['class'] = implode(' ', element('class', $attr, array()));
+
+		$this->fields[$name] = $raw_name;
+		$this->elements[$name] = $attr;
+		return $this;
+	}
+
+   /**
+	* Adds an input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @param	string		input type
+	* @return	object
+	*/
+	public function input($name, $value=null, $type='text')
+	{
+		$attr=array();
+		if(!is_array($name)) {
+			$attr['name']	= $name;
+			$attr['value']	= $value;
+		} else {
+			$attr = $name;
+		}
+		$attr = set_element('type', $attr, $type);
+		$attr = set_element('element', $attr, 'input');
+		return $this->element($attr);
+	}
+
+   /**
+	* Adds a text input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function text($name, $value=null)
+	{
+		$this->input($name, $value, 'text');
+	}
+
+   /**
+	* Adds a label element to the form
+	*
+	* @access	public
+	* @param	void
+	* @return	void
+	*/
+	public function label($label, $for=null)
+	{
+		$attr=array();
+		if(!is_array($label)) {
+			$attr['text']	= $label;
+			$attr['for']	= $for;
+		} else {
+			$attr = $name;
+		}
+		$attr = set_element('element', $attr, 'label');
+		$attr = set_element('name', $attr, element('for', $attr, element('label', $attr)));
+		return $this->element($attr);
+	}
+
 
    /**
 	* Builds the form and returns it as html
@@ -91,9 +223,18 @@ class Goodform {
 		$text	= $this->generate_text($attr);
 		$state	= $this->get_state($attr);
 		
+		$blacklist = array('label', 'help', 'element');
+		$attr = $this->clean_attributes($attr, $blacklist, TRUE);
+			
 		switch($type) {
 			case 'input':
-				$input = $this->generate_input($name, $attr);
+				$input = static::html_element($type, FALSE, $attr);
+				break;
+			case 'label':
+				$html	= element('text', $attr);
+				unset($attr['text']);
+				unset($attr['text']);
+				$input = static::html_element($type, $html, $attr);
 				break;
 			case 'textarea':
 			case 'button':
@@ -125,11 +266,9 @@ class Goodform {
 	* @param	mixed
 	* @return	string
 	*/
-	private function generate_input($name, $attr)
+	private function generate_input($type, $name, $attr)
 	{
-		$blacklist = array('label', 'help', 'element');
-		$attr = $this->clean_attributes($attr, $blacklist, TRUE);
-		return static::html_element('input', FALSE, $attr);
+		return static::html_element($type, FALSE, $attr);
 	}
 
 
@@ -228,80 +367,6 @@ class Goodform {
 		} else {
 			return '<'.$tag.' '.$attr.'>'.$text.'</'.$tag.'>';
 		}
-	}
-
-   /**
-	* Adds an input form element to the form
-	*
-	* @access	public
-	* @param	mixed		field name (string) or array of field attributes
-	* @param	string		field value - stored in param 1 if an array
-	* @param	string		input type
-	* @return	object
-	*/
-	public function element($name, $value=null)
-	{
-		$attr=array();
-		if(!is_array($name)) {
-			$attr['name']	= $name;
-			$attr['value']	= $value;
-		} else {
-			$attr = $name;
-		}
-		$name = element('name', $attr);
-		if(!$name) {
-			log_message('error', 'GoodForm: name attribute missing, can not add field to form.');
-			return $this;
-		}
-		$raw_name	= $name;
-		$name		= $this->namespace.$name;
-		if(element($name, $this->fields)) {
-			log_message('error', 'GoodForm: a field "'.$raw_name.'" already exists in the form. Use a different field name or namespace.');
-			return $this;
-		}
-		
-		// turn class string into array
-		//$attr['class'] = implode(' ', element('class', $attr, array()));
-		
-		$this->fields[$name] = $raw_name;
-		$this->elements[$name] = $attr;
-		return $this;
-	}
-	
-   /**
-	* Adds an input form element to the form
-	*
-	* @access	public
-	* @param	mixed		field name (string) or array of field attributes
-	* @param	string		field value - stored in param 1 if an array
-	* @param	string		input type
-	* @return	object
-	*/
-	public function input($name, $value=null, $type='text')
-	{
-		$attr=array();
-		if(!is_array($name)) {
-			$attr['name']	= $name;
-			$attr['value']	= $value;
-		} else {
-			$attr = $name;
-		}
-		$attr = set_element('type', $attr, $type);
-		$attr = set_element('element', $attr, 'input');
-		return $this->element($attr);
-	}
-
-   /**
-	* Adds a text input form element to the form
-	*
-	* @access	public
-	* @param	mixed		field name (string) or array of field attributes
-	* @param	string		field value - stored in param 1 if an array
-	* @return	void
-	*/
-	public function text($name, $value=null)
-	{
-		$this->input($name, $value, 'text');
 	}
 
    /**
