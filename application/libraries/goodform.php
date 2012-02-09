@@ -22,8 +22,8 @@ class Goodform {
 	private $form_validation;
 	private $parser;
 
-	private $template		= '{label}{input}{text}';
-	private $help_template	= '<span class="help-inline">{text}</span>';
+	private $template_theme = 'basic';
+	private $templates		= array();
 
    /**
 	* Object Constructor
@@ -49,12 +49,42 @@ class Goodform {
 	*/
 	public function initialize($config=array())
 	{
-		$vars = array('template', 'help_template');
+		$vars = array('template_theme');
 		
 		foreach($vars as $var) {
 			if(element($var, $config)) {
 				$this->{$var} = element($config, $var);
 			}
+		}
+		
+		$this->initialise_templates($this->template_theme);
+	}
+
+   /**
+	* Initialises multiple templates from a theme
+	* stored in the config file
+	*
+	* @access	public
+	* @param	string
+	* @return	void
+	*/
+	public function initialise_templates($theme)
+	{
+		log_message('error', 'initialise_templates = '.$theme);
+		$template_keys = array(
+			'default',
+			'help',
+			'input',
+			'checkbox',
+			'radio',
+		);
+		$templates = element($theme, $this->config->item('templates', 'goodform'), array());
+		if(!$templates) {
+			log_message('error', 'GoodForm: could not find templates in config for theme "'.$theme.'"');
+			return;
+		}
+		foreach($template_keys as $k) {
+			$this->templates[$k] = element($k, $templates);
 		}
 	}
 
@@ -67,18 +97,6 @@ class Goodform {
 	*/
 	public function horizontal_form()
 	{
-		$template = '<div class="control-group {state}">
-{label}
-<div class="controls">
-	{input}
-	{text}
-</div>
-</div>';
-		$config = array(
-			'template'		=> $template,
-			'help_template'	=> '<span class="help-inline">{text}</span>',
-		);
-		$this->initialize($config);
 		return $this;
 	}
 
@@ -165,7 +183,20 @@ class Goodform {
 	*/
 	public function text($name, $value=null)
 	{
-		$this->input($name, $value, 'text');
+		return $this->input($name, $value, 'text');
+	}
+
+   /**
+	* Adds a text input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function checkbox($name, $value=null)
+	{
+		return $this->input($name, $value, 'checkbox');
 	}
 
    /**
@@ -215,26 +246,17 @@ class Goodform {
 	*/
 	public function generate_element($name)
 	{
-		$input; $label; $help; $warning; $error; $success;
 		$attr = element($name, $this->elements, array());
-		$type = element('element', $attr, 'input');
+		$element = element('element', $attr, 'input');
 		
-		$label	= $this->generate_label($attr);
-		$text	= $this->generate_text($attr);
-		$state	= $this->get_state($attr);
-		
-		$blacklist = array('label', 'help', 'element');
-		$attr = $this->clean_attributes($attr, $blacklist, TRUE);
-			
-		switch($type) {
+		switch($element) {
 			case 'input':
-				$input = static::html_element($type, FALSE, $attr);
+				return $this->generate_input($name, $attr);
 				break;
 			case 'label':
 				$html	= element('text', $attr);
 				unset($attr['text']);
-				unset($attr['text']);
-				$input = static::html_element($type, $html, $attr);
+				return static::html_element($element, $html, $attr);
 				break;
 			case 'textarea':
 			case 'button':
@@ -248,15 +270,6 @@ class Goodform {
 				$input = 'todo';
 				break;
 		}
-		
-		$data = array(
-			'state'	=> $state,
-			'label'	=> $label,
-			'input'	=> $input,
-			'text'	=> $text,
-		);
-		
-		return $this->parser->parse_string($this->template, $data, TRUE);
 	}
 
    /**
@@ -266,9 +279,27 @@ class Goodform {
 	* @param	mixed
 	* @return	string
 	*/
-	private function generate_input($type, $name, $attr)
+	private function generate_input($name, $attr)
 	{
-		return static::html_element($type, FALSE, $attr);
+		$label		= $this->generate_label($attr);
+		$label_text	= element('label', $attr);
+		$text		= $this->generate_text($attr);
+		$state		= $this->get_state($attr);
+		$type		= element('type', $attr, 'default');
+
+		$template	= element('template', $attr, element($type, $this->templates, element('default', $this->templates)));
+		$blacklist	= array('element', 'label', 'help', 'template',);
+		$attr		= $this->clean_attributes($attr, $blacklist, TRUE);
+		$input		= static::html_element('input', FALSE, $attr);
+		
+		$data = array(
+			'state'			=> $state,
+			'label'			=> $label,
+			'label_text'	=> $label_text,
+			'input'			=> $input,
+			'text'			=> $text,
+		);
+		return $this->parser->parse_string($template, $data, TRUE);
 	}
 
 
@@ -312,12 +343,26 @@ class Goodform {
 		}
 	}
 
+	private function generate_label_attributes($field_attr)
+	{
+		$label	= element('label', $field_attr);
+		$name	= element('name', $field_attr);
+		if($label) {
+			$attr = array(
+				'id'	=> $name.'-label',
+				'for'	=> $name,
+			);
+			return static::html_attributes($attr);
+		}
+	}
+
 	private function generate_text($attr)
 	{
 		$messages = array('error', 'success', 'warning', 'help',);
 		foreach($messages as $m) {
 			if(element($m, $attr)) {
-				return $this->parser->parse_string($this->help_template, array('text'=>element($m, $attr)), TRUE);
+				$template = element('help', $this->templates, '{text}');
+				return $this->parser->parse_string($template, array('text'=>element($m, $attr)), TRUE);
 			}
 		}
 	}
@@ -355,6 +400,24 @@ class Goodform {
 	*/
 	public static function html_element($tag, $text, $attr)
 	{
+		$attr = static::html_attributes($attr)
+		;
+		if($text === FALSE) {
+			return '<'.$tag.' '.$attr.' />';
+		} else {
+			return '<'.$tag.' '.$attr.'>'.$text.'</'.$tag.'>';
+		}
+	}
+
+   /**
+	* converts an associative array to an html attribute array
+	*
+	* @access	public
+	* @param	array
+	* @return	string
+	*/
+	public static function html_attributes($attr)
+	{
 		if (is_array($attr)) {
 			$string = '';
 			foreach ($attr as $k => $v) {
@@ -362,11 +425,7 @@ class Goodform {
 			}
 			$attr = $string;
 		}
-		if($text === FALSE) {
-			return '<'.$tag.' '.$attr.' />';
-		} else {
-			return '<'.$tag.' '.$attr.'>'.$text.'</'.$tag.'>';
-		}
+		return $attr;
 	}
 
    /**
