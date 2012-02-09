@@ -7,4 +7,3 @@ $config['templates']['basic'] = array(
 	'checkbox'	=> '<label class="checkbox">{input} {label_text}</label>',
 	'radio'		=> '<label class="radio">{input} {label_text}</label>',	
 );
-$config['templates']['horizontal'] = array();

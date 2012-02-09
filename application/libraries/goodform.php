@@ -187,7 +187,7 @@ class Goodform {
 	}
 
    /**
-	* Adds a text input form element to the form
+	* Adds a checkbox input form element to the form
 	*
 	* @access	public
 	* @param	mixed		field name (string) or array of field attributes
@@ -199,6 +199,19 @@ class Goodform {
 		return $this->input($name, $value, 'checkbox');
 	}
 
+   /**
+	* Adds a radio input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function radio($name, $value=null)
+	{
+		return $this->input($name, $value, 'radio');
+	}
+	
    /**
 	* Adds a label element to the form
 	*
