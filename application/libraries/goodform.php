@@ -23,13 +23,15 @@ class Goodform {
 	private $parser;
 
 	private $template = 
-'<div class="control-group">
+'<div class="control-group {state}">
 	{label}
 	<div class="controls">
 		{input}
 		{text}
 	</div>
 </div>';
+
+	private $help_template = '<span class="help-inline">{text}</span>';
 
    /**
 	* Object Constructor
@@ -51,7 +53,7 @@ class Goodform {
 	* @param	mixed
 	* @return	string
 	*/
-	public function generate($attr)
+	public function generate($attr=array())
 	{
 		return static::html_element('form', $this->generate_elements(), $attr);
 	}
@@ -87,6 +89,7 @@ class Goodform {
 		
 		$label	= $this->generate_label($attr);
 		$text	= $this->generate_text($attr);
+		$state	= $this->get_state($attr);
 		
 		switch($type) {
 			case 'input':
@@ -106,6 +109,7 @@ class Goodform {
 		}
 		
 		$data = array(
+			'state'	=> $state,
 			'label'	=> $label,
 			'input'	=> $input,
 			'text'	=> $text,
@@ -127,6 +131,7 @@ class Goodform {
 		$attr = $this->clean_attributes($attr, $blacklist, TRUE);
 		return static::html_element('input', FALSE, $attr);
 	}
+
 
    /**
 	* cleans attribute array so it only has allowed html5 attributes
@@ -173,9 +178,28 @@ class Goodform {
 		$messages = array('error', 'success', 'warning', 'help',);
 		foreach($messages as $m) {
 			if(element($m, $attr)) {
-				$text = element($m, $attr);
-				$attr = array('class' => 'help-block');
-				return static::html_element('p', $text, $attr);
+				return $this->parser->parse_string($this->help_template, array('text'=>element($m, $attr)), TRUE);
+			}
+		}
+	}
+
+   /**
+	* Returns the current state of the element
+	* - error		error with field value
+	* - success		field value is valid
+	* - warning		warning about field value
+	* - null		normal
+	*
+	* @access	private
+	* @param	array
+	* @return	string
+	*/
+	private function get_state($attr)
+	{
+		$messages = array('error', 'success', 'warning',);
+		foreach($messages as $m) {
+			if(element($m, $attr)) {
+				return $m;
 			}
 		}
 	}
@@ -235,6 +259,9 @@ class Goodform {
 			log_message('error', 'GoodForm: a field "'.$raw_name.'" already exists in the form. Use a different field name or namespace.');
 			return $this;
 		}
+		
+		// turn class string into array
+		//$attr['class'] = implode(' ', element('class', $attr, array()));
 		
 		$this->fields[$name] = $raw_name;
 		$this->elements[$name] = $attr;
