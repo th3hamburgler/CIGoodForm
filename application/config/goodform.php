@@ -7,3 +7,17 @@ $config['templates']['basic'] = array(
 	'checkbox'	=> '<label class="checkbox">{input} {label_text}</label>',
 	'radio'		=> '<label class="radio">{input} {label_text}</label>',	
 );
+
+$config['templates']['horizontal'] = array(
+	'default'	=> '<div class="control-group {state}">
+	{label}
+	<div class="controls">
+		{input}
+		{text}
+	</div>
+</div>',
+	'help'		=> '<span class="help-inline">{text}</span>',
+	'input'		=> '{label}{input}{text}',
+	'checkbox'	=> '<label class="checkbox">{input} {label_text}</label>',
+	'radio'		=> '<label class="radio">{input} {label_text}</label>',	
+);

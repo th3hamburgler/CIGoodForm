@@ -53,11 +53,11 @@ class Goodform {
 		
 		foreach($vars as $var) {
 			if(element($var, $config)) {
-				$this->{$var} = element($config, $var);
+				$this->{$var} = element($var, $config);
 			}
 		}
 		
-		$this->initialise_templates($this->template_theme);
+		return $this->initialise_templates($this->template_theme);
 	}
 
    /**
@@ -70,7 +70,6 @@ class Goodform {
 	*/
 	public function initialise_templates($theme)
 	{
-		log_message('error', 'initialise_templates = '.$theme);
 		$template_keys = array(
 			'default',
 			'help',
@@ -81,11 +80,12 @@ class Goodform {
 		$templates = element($theme, $this->config->item('templates', 'goodform'), array());
 		if(!$templates) {
 			log_message('error', 'GoodForm: could not find templates in config for theme "'.$theme.'"');
-			return;
+		} else {
+			foreach($template_keys as $k) {
+				$this->templates[$k] = element($k, $templates);
+			}
 		}
-		foreach($template_keys as $k) {
-			$this->templates[$k] = element($k, $templates);
-		}
+		return $this;
 	}
 
    /**
