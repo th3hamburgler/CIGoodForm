@@ -4,8 +4,8 @@ $config['templates']['basic'] = array(
 	'default'	=> '{label}{input}{text}',
 	'help'		=> '<span class="help-inline">{text}</span>',
 	'input'		=> '{label}{input}{text}',
-	'checkbox'	=> '<label class="checkbox">{input} {label_text}</label>',
-	'radio'		=> '<label class="radio">{input} {label_text}</label>',	
+	'checkbox'	=> '{label}<label class="checkbox">{input}{text}</label>',
+	'radio'		=> '{label}<label class="radio">{input}{text}</label>',	
 );
 
 $config['templates']['horizontal'] = array(
@@ -18,6 +18,16 @@ $config['templates']['horizontal'] = array(
 </div>',
 	'help'		=> '<span class="help-inline">{text}</span>',
 	'input'		=> '{label}{input}{text}',
-	'checkbox'	=> '<label class="checkbox">{input} {label_text}</label>',
-	'radio'		=> '<label class="radio">{input} {label_text}</label>',	
+	'checkbox'	=> '<div class="control-group {state}">
+	{label}
+	<div class="controls">
+		<label class="checkbox">{input}{text}</label>
+	</div>
+</div>',
+	'radio'		=> '<div class="control-group {state}">
+	{label}
+	<div class="controls">
+		<label class="radio">{input}{text}</label>
+	</div>
+</div>',
 );
