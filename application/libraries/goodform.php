@@ -21,6 +21,7 @@ class Goodform {
 
 	private $form_validation;
 	private $parser;
+	private $open_fieldset	= false;
 
 	private $template_theme = 'basic';
 	private $templates		= array();
@@ -278,6 +279,81 @@ class Goodform {
 		return $this->element($attr);
 	}
 
+   /**
+	* Adds a label element to the form
+	*
+	* @access	public
+	* @param	void
+	* @return	void
+	*/
+	public function fieldset($legend, $attr=array())
+	{
+		$this->close_fieldset();
+		$this->open_fieldset = TRUE;
+		if (is_array($legend)) {
+			$attr = $legend;
+			if (element('legend', $attr)) {
+				$legend = element('legend', $attr, null);
+				unset($attr['legend']);
+			} else {
+				$legend = null;
+			}
+		}
+		$this->html('<fieldset '.static::html_attributes($attr).'>');
+		if ($legend) { 
+			return $this->legend($legend);
+		}
+		return $this;
+	}
+
+   /**
+	* Adds a label element to the form
+	*
+	* @access	public
+	* @param	void
+	* @return	void
+	*/
+	public function close_fieldset()
+	{
+		if (!$this->open_fieldset) return $this;
+		$this->open_fieldset = FALSE;
+		return $this->html('</fieldset>');
+	}
+
+   /**
+	* creates a legend element in the form
+	*
+	* @access	public
+	* @param	string
+	* @param	array
+	* @return	object
+	*/
+	public function legend($label, $attr=array())
+	{
+		if (!is_array($label)) {
+			$attr['value']		= $label;
+			$attr['element']	= 'legend';
+		} else {
+			$attr = $label;
+			$attr['element']	= 'legend';
+		}
+		$attr = set_element('name', $attr, element('value', $attr).'-legend');
+		
+		return $this->element($attr);
+	}
+	
+   /**
+	* Adds a custom html string to the form
+	*
+	* @access	public
+	* @return	object
+	*/
+	public function html($string)
+	{
+		// add to objects element array
+		$this->elements[] = array('element' => 'html', 'html' => $string);
+		return $this;
+	}
 
    /**
 	* Builds the form and returns it as html
@@ -286,10 +362,13 @@ class Goodform {
 	* @param	mixed
 	* @return	string
 	*/
-	public function generate_elements()
+	public function generate_elements($fields=null)
 	{
+		if(!$fields) {
+			$fields = array_keys($this->elements);
+		}
 		$elements = array();
-		foreach($this->fields as $name => $raw_name) {
+		foreach($fields as $name) {
 			$elements[$name] = $this->generate_element($name);
 		}
 		return implode("\n", $elements);
@@ -306,7 +385,7 @@ class Goodform {
 	{
 		$attr = element($name, $this->elements, array());
 		$element = element('element', $attr, 'input');
-		
+		log_message('error', 'element = '.$element);
 		switch($element) {
 			case 'input':
 				return $this->generate_input($name, $attr);
@@ -322,10 +401,13 @@ class Goodform {
 				break;
 			case 'select':	
 			case 'datalist':
-				$input = 'todo';
+				return 'todo';
+				break;
+			case 'html':
+				return element('html', $attr, 'asdas');
 				break;
 			default:
-				$input = 'todo';
+				return 'todo';
 				break;
 		}
 	}
@@ -410,8 +492,6 @@ class Goodform {
 	*/
 	private function get_template($attr, $type='default')
 	{
-		log_message('error', 'get_template '.$type);
-		log_message('error', print_r($this->templates, TRUE));
 		return 
 		element(
 			'template', 
