@@ -257,6 +257,28 @@ class Goodform {
 	
 		return $this->element($attr);
 	}
+
+   /**
+	* Adds a select element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function select($name, $value=null)
+	{
+		$attr=array();
+		if(!is_array($name)) {
+			$attr['name']	= $name;
+			$attr['value']	= $value;
+		} else {
+			$attr = $name;
+		}
+		$attr = set_element('element', $attr, 'select');
+
+		return $this->element($attr);
+	}
 		
    /**
 	* Adds a label element to the form
@@ -385,7 +407,7 @@ class Goodform {
 	{
 		$attr = element($name, $this->elements, array());
 		$element = element('element', $attr, 'input');
-		log_message('error', 'element = '.$element);
+		
 		switch($element) {
 			case 'input':
 				return $this->generate_input($name, $attr);
@@ -397,11 +419,13 @@ class Goodform {
 				break;
 			case 'textarea':
 			case 'button':
+			case 'legend':
 				return $this->generate_textarea($name, $attr);
 				break;
 			case 'select':	
 			case 'datalist':
-				return 'todo';
+				$attr['value'] = $this->generate_options($attr);
+				return $this->generate_textarea($name, $attr);
 				break;
 			case 'html':
 				return element('html', $attr, 'asdas');
@@ -462,7 +486,7 @@ class Goodform {
 			unset($attr['value']);
 		}
 		$template	= $this->get_template($attr, $element);
-		$blacklist	= array('element', 'label', 'help', 'template',);
+		$blacklist	= array('element', 'label', 'help', 'template', 'selected', 'options');
 		$attr		= $this->clean_attributes($attr, $blacklist, TRUE);
 		$input		= static::html_element($element, $value, $attr);
 
@@ -474,6 +498,41 @@ class Goodform {
 			'text'			=> $text,
 		);
 		return $this->parser->parse_string($template, $data, TRUE);
+	}
+
+   /**
+	* method
+	*
+	* @access	private
+	* @param	void
+	* @return	void
+	*/
+	private function generate_options($attr)
+	{
+		$options = element('options', $attr);
+		if($options === FALSE) return;
+		$selected = element('value', $attr, element('selected', $attr, ''));
+		if(!is_array($selected)) $selected = array($selected);
+		$opt_arr = array();
+		foreach ($options as $name => $v) {
+			if (is_array($v)) {
+				$opt_arr[] = '<optgroup label="'.$name.'">';
+					$optgroup = array(
+						'options'	=> $v,
+						'value'		=> $selected,
+					);
+					// recurse!
+					$opt_arr[] = $this->generate_options($optgroup);
+				$opt_arr[] = '</optgroup>';
+			} else {
+				if (in_array($v, $selected) OR $v == $selected) {
+					$opt_arr[] = '<option value="'.$v.'" selected="selected">'.$name.'</option>';
+				} else {
+					$opt_arr[] = '<option value="'.$v.'">'.$name.'</option>';
+				}
+			}
+		}
+		return implode("\n\t", $opt_arr);
 	}
 
    /**
