@@ -224,6 +224,29 @@ class Goodform {
 	{
 		return $this->input($name, $value, 'button');
 	}
+
+   /**
+	* Adds a textarea element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function textarea($name, $value=null)
+	{
+		$attr=array();
+		if(!is_array($name)) {
+			$attr['name']	= $name;
+			$attr['value']	= $value;
+		} else {
+			$attr = $name;
+		}
+		$attr = set_element('element', $attr, 'textarea');
+	
+		return $this->element($attr);
+	}
+	
    /**
 	* Adds a label element to the form
 	*
@@ -285,7 +308,7 @@ class Goodform {
 				break;
 			case 'textarea':
 			case 'button':
-				$input = 'todo';
+				return $this->generate_textarea($name, $attr);
 				break;
 			case 'select':	
 			case 'datalist':
@@ -317,6 +340,40 @@ class Goodform {
 		$attr		= $this->clean_attributes($attr, $blacklist, TRUE);
 		$input		= static::html_element('input', FALSE, $attr);
 		
+		$data = array(
+			'state'			=> $state,
+			'label'			=> $label,
+			'label_text'	=> $label_text,
+			'input'			=> $input,
+			'text'			=> $text,
+		);
+		return $this->parser->parse_string($template, $data, TRUE);
+	}
+
+   /**
+	* Builds a textarea element
+	*
+	* @access	public
+	* @param	mixed
+	* @return	string
+	*/
+	private function generate_textarea($name, $attr)
+	{
+		$label		= $this->generate_label($attr);
+		$label_text	= element('label', $attr);
+		$text		= $this->generate_text($attr);
+		$state		= $this->get_state($attr);
+		$element	= element('element', $attr, 'default');
+		$value		= element('value', $attr, '');
+		// if textarea remove value attribute
+		if($element AND isset($attr['value'])) {
+			unset($attr['value']);
+		}
+		$template	= element('template', $attr, element($type, $this->templates, element('default', $this->templates)));
+		$blacklist	= array('element', 'label', 'help', 'template',);
+		$attr		= $this->clean_attributes($attr, $blacklist, TRUE);
+		$input		= static::html_element($element, $value, $attr);
+
 		$data = array(
 			'state'			=> $state,
 			'label'			=> $label,
