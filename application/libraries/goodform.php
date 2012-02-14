@@ -213,7 +213,20 @@ class Goodform {
 	{
 		return $this->input($name, $value, 'radio');
 	}
-	
+
+   /**
+	* Adds a file input form element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function file($name, $value=null)
+	{
+		return $this->input($name, $value, 'file');
+	}
+
    /**
 	* Adds a textarea element to the form
 	*
