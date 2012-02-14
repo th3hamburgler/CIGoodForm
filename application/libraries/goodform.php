@@ -76,6 +76,7 @@ class Goodform {
 			'input',
 			'checkbox',
 			'radio',
+			'button',
 		);
 		$templates = element($theme, $this->config->item('templates', 'goodform'), array());
 		if(!$templates) {
@@ -213,19 +214,6 @@ class Goodform {
 	}
 	
    /**
-	* Adds a button input form element to the form
-	*
-	* @access	public
-	* @param	mixed		field name (string) or array of field attributes
-	* @param	string		field value - stored in param 1 if an array
-	* @return	void
-	*/
-	public function button($name, $value=null)
-	{
-		return $this->input($name, $value, 'button');
-	}
-
-   /**
 	* Adds a textarea element to the form
 	*
 	* @access	public
@@ -246,7 +234,29 @@ class Goodform {
 	
 		return $this->element($attr);
 	}
+
+   /**
+	* Adds a button element to the form
+	*
+	* @access	public
+	* @param	mixed		field name (string) or array of field attributes
+	* @param	string		field value - stored in param 1 if an array
+	* @return	void
+	*/
+	public function button($name, $value=null)
+	{
+		$attr=array();
+		if(!is_array($name)) {
+			$attr['name']	= $name;
+			$attr['value']	= $value;
+		} else {
+			$attr = $name;
+		}
+		$attr = set_element('element', $attr, 'button');
 	
+		return $this->element($attr);
+	}
+		
    /**
 	* Adds a label element to the form
 	*
@@ -369,7 +379,7 @@ class Goodform {
 		if($element AND isset($attr['value'])) {
 			unset($attr['value']);
 		}
-		$template	= element('template', $attr, element($type, $this->templates, element('default', $this->templates)));
+		$template	= $this->get_template($attr, $element);
 		$blacklist	= array('element', 'label', 'help', 'template',);
 		$attr		= $this->clean_attributes($attr, $blacklist, TRUE);
 		$input		= static::html_element($element, $value, $attr);
@@ -384,6 +394,38 @@ class Goodform {
 		return $this->parser->parse_string($template, $data, TRUE);
 	}
 
+   /**
+	* There is are three places an elements template can be
+	* defined. In priority order:
+	* - As a string in $attr['template']
+	* - In the global $templates array as the element type e.g.
+	*	- $this->templates['button']
+	* 	- $this->templates['checkbox']
+	* - The default template $this->templates['default']
+	*
+	* @access	private
+	* @param	array
+	* @param	string
+	* @return	string
+	*/
+	private function get_template($attr, $type='default')
+	{
+		log_message('error', 'get_template '.$type);
+		log_message('error', print_r($this->templates, TRUE));
+		return 
+		element(
+			'template', 
+			$attr, 
+			element(
+				$type,
+				$this->templates, 
+				element(
+					'default',
+					$this->templates
+				)
+			)
+		);
+	}
 
    /**
 	* cleans attribute array so it only has allowed html5 attributes
