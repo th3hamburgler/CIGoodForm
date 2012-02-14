@@ -501,11 +501,18 @@ class Goodform {
 	}
 
    /**
-	* method
+	* Builds a group of option elements
+	*
+	* Options are defined in $attr['options'] with the key
+	* as the label and value as the option value.
+	*
+	* Selected element are either defined in $attr['value']
+	* or $attr['selected'] but not both. Multiple selected 
+	* elements can be defined as an array of values.
 	*
 	* @access	private
-	* @param	void
-	* @return	void
+	* @param	array
+	* @return	string
 	*/
 	private function generate_options($attr)
 	{
